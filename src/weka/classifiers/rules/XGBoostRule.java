@@ -332,9 +332,9 @@ public class XGBoostRule extends RandomizableClassifier implements WeightedInsta
     /**
      * Recursively produces the string representation of a branch in the rule.
      */
-    private void branchToString(StringBuffer sb, boolean left, int level, InternalNode node, String rule) {
+    private void branchToString(StringBuffer sb, int level, InternalNode node, String rule) {
         // Append current condition (left or right branch)
-        String condition = node.attribute.name() + (left ? " < " : " >= ") +
+        String condition = node.attribute.name() + (node.isLeft ? " < " : " >= ") +
                 Utils.doubleToString(node.splitPoint, getNumDecimalPlaces());
 
         // Concatenate this condition to the current rule string
@@ -355,8 +355,7 @@ public class XGBoostRule extends RandomizableClassifier implements WeightedInsta
             sb.append("if " + rule + " then " + String.format("%.10f", ((LeafNode) node).prediction) + "\n");
         } else {
             // Internal node: call branchToString for left and right branches
-            branchToString(sb, true, level, (InternalNode) node, rule);
-            branchToString(sb, false, level, (InternalNode) node, rule);
+            branchToString(sb, level, (InternalNode) node, rule);
         }
     }
 
