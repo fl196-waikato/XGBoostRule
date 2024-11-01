@@ -3,22 +3,19 @@ package weka.classifiers.meta;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.RandomizableIteratedSingleClassifierEnhancer;
-import weka.classifiers.rules.XGBoostRule;
-import weka.classifiers.trees.XGBoostTree;
 import weka.core.*;
 
 import java.io.Serializable;
 import java.util.Enumeration;
 import java.util.Random;
-import java.util.Collections;
 
 /**
  * This class provides an implementation of the basic XGBoost algorithm, excluding the base learner implementation.
- * The default base learner is XGBoostRule2. The class extends RandomizableIteratedClassifierEnhancer to inherit
+ * The default base learner is XGBoostTree. The class extends RandomizableIteratedClassifierEnhancer to inherit
  * member variables and corresponding option handling for specifying the number of boosting iterations to run,
  * and the seed for the random number generator that is used to initialise the random number generator of the base
  * learner, which is assumed to also implement the Randomizable interface (e.g., by extending the class
- * RandomizableClassifier). The base learner, e.g., XGBoostRule2, must also implement the WeightedInstancesHandler
+ * RandomizableClassifier). The base learner, e.g., XGBoostTree, must also implement the WeightedInstancesHandler
  * interface because the values of the Hessian for each instance are provided to the base learner as instance
  * weights. The class values of the instances passed to the base learner are the corresponding negative gradients.
  */
@@ -47,38 +44,40 @@ public class XGBoost extends RandomizableIteratedSingleClassifierEnhancer implem
      * String describing default classifier.
      */
     protected String defaultClassifierString() {
-        return "weka.classifiers.trees.XGBoostRule2";
+        return "weka.classifiers.trees.XGBoostTree";
     }
 
     /**
      * Default constructor setting the default classifier.
      */
     public XGBoost() {
-        this(new XGBoostRule()); // default algorithm
-    }
-
-    public XGBoost(Classifier baseClassifier) {
-        m_Classifier = baseClassifier;
+        m_Classifier = new weka.classifiers.trees.XGBoostTree();
     }
 
     /**
      * Provides an enumeration of the additional measures supplied by the base learner (if any).
      */
-
-    @Override
     public Enumeration<String> enumerateMeasures() {
         if (m_Classifier instanceof AdditionalMeasureProducer) {
             return ((AdditionalMeasureProducer) m_Classifier).enumerateMeasures();
         } else {
-            return Collections.emptyEnumeration();
+            return new Enumeration<String>() {
+                public boolean hasMoreElements() {
+                    return false;
+                }
+
+                public String nextElement() {
+                    return null;
+                }
+            };
         }
     }
 
-    @Override
+    /**
+     * Provides the sum of the specified measure across all base models (and throws an exception if it does not exist).
+     */
     public double getMeasure(String measureName) throws IllegalArgumentException {
-        if (measureName.equals("measureNumRules")) {
-            return calculateNumRules();
-        } else if (m_Classifier instanceof AdditionalMeasureProducer) {
+        if (m_Classifier instanceof AdditionalMeasureProducer) {
             double sum = 0;
             for (Classifier classifier : m_Classifiers) {
                 sum += ((AdditionalMeasureProducer) classifier).getMeasure(measureName);
@@ -87,16 +86,6 @@ public class XGBoost extends RandomizableIteratedSingleClassifierEnhancer implem
         } else {
             throw new IllegalArgumentException("Measure " + measureName + " not supported.");
         }
-    }
-
-    private int calculateNumRules() {
-        int numRules = 0;
-        for (Classifier classifier : m_Classifiers) {
-            if (classifier instanceof AdditionalMeasureProducer) {
-                numRules += ((AdditionalMeasureProducer) classifier).getMeasure("measureNumRules");
-            }
-        }
-        return numRules;
     }
 
     /**
@@ -149,8 +138,7 @@ public class XGBoost extends RandomizableIteratedSingleClassifierEnhancer implem
         }
 
         public double hessian(Instance i, double pred) {
-            double hessianValue = Double.max(prob(pred) * (1.0 - prob(pred)), 1e-16);
-            return hessianValue;
+            return Double.max(prob(pred) * (1.0 - prob(pred)), 1e-16);
         }
 
         public double prediction(double pred) {
@@ -164,7 +152,7 @@ public class XGBoost extends RandomizableIteratedSingleClassifierEnhancer implem
     private LossFunction loss;
 
     /**
-     * Variable to hold data that can be passed to the XGBoostRule2 learner.
+     * Variable to hold data that can be passed to the XGBoostTree learner.
      */
     private Instances xgBoostData;
 
@@ -283,20 +271,6 @@ public class XGBoost extends RandomizableIteratedSingleClassifierEnhancer implem
      * The main method for running this classifier from a command-line interface.
      */
     public static void main(String[] options) {
-        /*runClassifier(new XGBoost(), options);*/
-        String classifierType = "rule"; // 默认使用 XGBoostRule
-        if (options.length > 0) {
-            classifierType = options[0]; // 第一个命令行参数用于指定分类器类型
-        }
-
-        Classifier baseClassifier;
-        if (classifierType.equalsIgnoreCase("tree")) {
-            baseClassifier = new XGBoostTree();
-        } else {
-            baseClassifier = new XGBoostRule();
-        }
-
-        XGBoost xgBoost = new XGBoost(baseClassifier);
-        runClassifier(xgBoost, options);
+        runClassifier(new XGBoost(), options);
     }
 }
