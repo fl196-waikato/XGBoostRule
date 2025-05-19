@@ -1,0 +1,3 @@
+This file is building a tree model named XGBoostTree, including its tree formation and splitting process, applying gradients and Hessians, for calculating the optimal splitting points. 
+The model's implementation involves incorporating the key features of XGBoost to enhance the model's control and flexibility. 
+Finally, I used the official XGBoost model from the scikit-learn package in the Python plugin from WEKA as the benchmark algorithm, compared it with the self-built XGBoostTree algorithm, applied it to different datasets, and observed its classification accuracy and root relative squared error in both classification and regression cases to evaluate its effectiveness.
